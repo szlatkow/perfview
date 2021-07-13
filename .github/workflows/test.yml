@@ -1,0 +1,28 @@
+name: CI/CD Pipeline
+
+on: [ push, pull_request, workflow_dispatch ]
+
+jobs:
+  ci:
+    name: Continuous Integration
+    runs-on: windows-2019
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tooling setup
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 2.1.505
+
+      - name: Restore solution
+        shell: pwsh
+        run: nuget restore PerfView.sln
+
+      - name: Build solution
+        shell: pwsh
+        run: msbuild PerfView.sln /p:Configuration=Debug
