@@ -168,19 +168,20 @@ jobs:
       - name: Pack solution
         shell: pwsh
         run: |
-          $pathToSolution = ""
-          $configurationSetting = "Release"
-          $packOutputFolder = "NuGet"
-          $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
-          $githubRunNumber = ${{ github.run_number }}
+          dotnet test PerfView.sln
+          # $pathToSolution = ""
+          # $configurationSetting = "Release"
+          # $packOutputFolder = "NuGet"
+          # $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
+          # $githubRunNumber = ${{ github.run_number }}
 
-          dotnet pack $pathToSolution `
-          --configuration $configurationSetting `
-          --output $packOutputFolder `
-          --include-symbols `
-          --no-restore `
-          -property:VersionPrefix=$projectVersion `
-          -property:VersionSuffix=$githubRunNumber
+          # dotnet pack $pathToSolution `
+          # --configuration $configurationSetting `
+          # --output $packOutputFolder `
+          # --include-symbols `
+          # --no-restore `
+          # -property:VersionPrefix=$projectVersion `
+          # -property:VersionSuffix=$githubRunNumber
 
       - name: Upload NuGet packages as pipeline artifact
         uses: actions/upload-artifact@v2
