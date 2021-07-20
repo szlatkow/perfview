@@ -5,7 +5,6 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <RootNamespace>PerfView</RootNamespace>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <IsTestProject>true<IsTestProject>
   </PropertyGroup>
 
   <PropertyGroup>
