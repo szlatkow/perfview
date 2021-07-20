@@ -110,7 +110,7 @@ jobs:
       - name: Run unit tests
         shell: pwsh
         run: |
-          $pathToSolution = "PerfView.sln"
+          $pathToTestProject = "src\PerfView.Tests\PerfView.Tests.csproj"
           $configurationSetting = "Release"
           $projectName = "${{ github.event.repository.name }}"
           $date = Get-Date -Format "MM-dd-yyyy"
