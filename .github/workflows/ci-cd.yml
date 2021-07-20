@@ -122,7 +122,7 @@ jobs:
           $loggerAttributes = "trx;LogFileName=$projectName-$date.trx;verbosity=normal"
           $testOutputFolder = "Test results"
 
-          dotnet test $pathToSolution `
+          dotnet test $pathToProject `
           --configuration $configurationSetting `
           --logger $loggerAttributes `
           --results-directory $testOutputFolder `
