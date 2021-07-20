@@ -28,4 +28,4 @@ jobs:
 
       - name: Build solution
         shell: pwsh
-        run: msbuild PerfView.sln /p:Configuration=Debug
+        run: dotnet build PerfView.sln --configuration Release

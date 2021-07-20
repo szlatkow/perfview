@@ -114,19 +114,7 @@ jobs:
 
       - name: Run unit tests
         shell: pwsh
-        run: |
-          $pathToTestProject = "src\PerfView.Tests\PerfView.Tests.csproj"
-          $configurationSetting = "Release"
-          $projectName = "${{ github.event.repository.name }}"
-          $date = Get-Date -Format "MM-dd-yyyy"
-          $loggerAttributes = "trx;LogFileName=$projectName-$date.trx;verbosity=normal"
-          $testOutputFolder = "Test results"
-
-          dotnet test $pathToProject `
-          --configuration $configurationSetting `
-          --logger $loggerAttributes `
-          --results-directory $testOutputFolder `
-          --no-build
+        run: dotnet test PerfView.sln --configuration Release
 
       - name: Upload test results as pipeline artifact
         uses: actions/upload-artifact@v2
