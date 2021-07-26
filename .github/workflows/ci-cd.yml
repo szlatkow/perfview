@@ -115,40 +115,40 @@ jobs:
           /p:Configuration=$configurationSetting `
           /p:RestorePackages=$restorePackages
 
-      - name: Run unit tests
-        shell: pwsh
-        run: dotnet test PerfView.sln --configuration Release
+      # - name: Run unit tests
+      #   shell: pwsh
+      #   run: dotnet test PerfView.sln --configuration Release
 
-      - name: Upload test results as pipeline artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Test results
-          path: 'Test results/'
+      # - name: Upload test results as pipeline artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: Test results
+      #     path: 'Test results/'
 
       # # Artifact generation and publish to pipeline
 
-      # - name: Publish project for each target framework
-      #   shell: pwsh
-      #   run: |
-      #     $pathToProject = ""
-      #     $configurationSetting = "Release"
-      #     $publishOutputFolder = "Publish outputs"
-      #     $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
-      #     $targetFrameworksProperty = [String](([xml](Get-Content -Path $pathToProject)).Project.PropertyGroup.TargetFrameworks)
-      #     $targetFrameworks = $targetFrameworksProperty.split(';')
-      #     $githubRunNumber = ${{ github.run_number }}
+      - name: Publish project for each target framework
+        shell: pwsh
+        run: |
+          $pathToProject = "src\PerfView\PerfView.csproj"
+          $configurationSetting = "Release"
+          $publishOutputFolder = "Publish outputs"
+          $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
+          $targetFrameworksProperty = [String](([xml](Get-Content -Path $pathToProject)).Project.PropertyGroup.TargetFrameworks)
+          $targetFrameworks = $targetFrameworksProperty.split(';')
+          $githubRunNumber = ${{ github.run_number }}
 
-      #     foreach ( $framework in $targetFrameworks ) {
-      #       $frameworkNum = [String]($framework -replace ' ', '')
+          foreach ( $framework in $targetFrameworks ) {
+            $frameworkNum = [String]($framework -replace ' ', '')
 
-      #       dotnet publish $pathToProject `
-      #       --configuration $configurationSetting `
-      #       --output "$publishOutputFolder/$frameworkNum" `
-      #       --framework $frameworkNum `
-      #       --no-restore `
-      #       -property:VersionPrefix=$projectVersion `
-      #       -property:VersionSuffix=$githubRunNumber
-      #     }
+            dotnet publish $pathToProject `
+            --configuration $configurationSetting `
+            --output "$publishOutputFolder/$frameworkNum" `
+            --framework $frameworkNum `
+            --no-restore `
+            -property:VersionPrefix=$projectVersion `
+            -property:VersionSuffix=$githubRunNumber
+          }
 
       - name: Upload publish output as pipeline artifact
         uses: actions/upload-artifact@v2
@@ -167,75 +167,75 @@ jobs:
           name: NuGet packages
           path: NuGet/
 
-#   cd:
-#     if: needs.ci.outputs.latest_version != ''
-#     name: Continuous Deployment
-#     needs: ci
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout repository # GH CLI requires a cloned repo
-#         uses: actions/checkout@v2
+  cd:
+    if: needs.ci.outputs.latest_version != ''
+    name: Continuous Deployment
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository # GH CLI requires a cloned repo
+        uses: actions/checkout@v2
 
-#       # Tooling setup
+      # Tooling setup
 
-#       - name: Install .NET SDK
-#         uses: actions/setup-dotnet@v1
-#         with:
-#           dotnet-version: 5.0.203
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.203
 
-#       - name: Install/Update 7z
-#         shell: pwsh
-#         run: |
-#           sudo apt update
-#           sudo apt install p7zip-full p7zip-rar
+      # - name: Install/Update 7z
+      #   shell: pwsh
+      #   run: |
+      #     sudo apt update
+      #     sudo apt install p7zip-full p7zip-rar
 
-#       # NuGet packages publish
+      # NuGet packages publish
 
-#       - name: Download and extract NuGet packages artifact
-#         uses: actions/download-artifact@v2
-#         with:
-#           name: NuGet packages
-#           path: NuGet/
+      - name: Download and extract NuGet packages artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: NuGet packages
+          path: NuGet/
 
-#       - name: Push NuGet packages to NuGet.org
-#         continue-on-error: true
-#         shell: pwsh
-#         run: |
-#           $packagePath = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg"
-#           $nugetSource = "https://api.nuget.org/v3/index.json"
-#           $nugetApiKey = "${{ secrets.NUGET_API_KEY }}"
+      - name: Push NuGet packages to NuGet.org
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $packagePath = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg"
+          $nugetSource = "https://api.nuget.org/v3/index.json"
+          $nugetApiKey = "${{ secrets.NUGET_API_KEY }}"
 
-#           dotnet nuget push $packagePath `
-#           --source $nugetSource `
-#           --api-key $nugetApiKey
+          dotnet nuget push $packagePath `
+          --source $nugetSource `
+          --api-key $nugetApiKey
 
-#       # GitHub release preparation and publish
+      # GitHub release preparation and publish
 
-#       - name: Download and extract assemblies artifact
-#         uses: actions/download-artifact@v2
-#         with:
-#           name: Publish outputs
-#           path: 'Publish outputs/'
+      - name: Download and extract assemblies artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: Publish outputs
+          path: 'Publish outputs/'
 
-#       - name: Archive assemblies for release
-#         shell: pwsh
-#         run: |
-#           cd './Publish outputs'
-#           7z a '${{ github.workspace }}/ ${{ needs.ci.outputs.latest_version }} Assemblies.7z' .
+      - name: Archive assemblies for release
+        shell: pwsh
+        run: |
+          cd './Publish outputs'
+          7z a '${{ github.workspace }}/ ${{ needs.ci.outputs.latest_version }} Assemblies.7z' .
 
-#       - name: Create and publish release
-#         shell: pwsh
-#         run: |
-#           $releaseTag = "${{ needs.ci.outputs.latest_version }}"
-#           $releaseTitle = " ${{ needs.ci.outputs.latest_version }}"
-#           $releaseNotes = ""
-#           $releaseAssets = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg", "NuGet/.${{ needs.ci.outputs.latest_version }}.snupkg", " ${{ needs.ci.outputs.latest_version }} Assemblies.7z"
+      - name: Create and publish release
+        shell: pwsh
+        run: |
+          $releaseTag = "${{ needs.ci.outputs.latest_version }}"
+          $releaseTitle = " ${{ needs.ci.outputs.latest_version }}"
+          $releaseNotes = ""
+          $releaseAssets = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg", "NuGet/.${{ needs.ci.outputs.latest_version }}.snupkg", " ${{ needs.ci.outputs.latest_version }} Assemblies.7z"
 
-#           gh release create $releaseTag `
-#           --title $releaseTitle `
-#           --notes $releaseNotes `
-#           $releaseAssets
-#         env:
-#           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          gh release create $releaseTag `
+          --title $releaseTitle `
+          --notes $releaseNotes `
+          $releaseAssets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# # Built with ❤ by [Pipeline Foundation](https://pipeline.foundation)
+# Built with ❤ by [Pipeline Foundation](https://pipeline.foundation)
