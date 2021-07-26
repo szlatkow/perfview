@@ -14,9 +14,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       # Tooling setup
 
       - name: Install .NET SDK
