@@ -77,20 +77,20 @@ jobs:
           release_branches: ${{ steps.data_gatherer.outputs.default_branch }}
           tag_prefix: ''
 
-      # - name: Project version determiner
-      #   id: version_determiner
-      #   shell: pwsh
-      #   run: |
-      #     $gitNewVersion = if ( "${{ steps.tag_generator.outputs.new_version }}" ) { "${{ steps.tag_generator.outputs.new_version }}" } else { $null }
+      - name: Project version determiner
+        id: version_determiner
+        shell: pwsh
+        run: |
+          $gitNewVersion = if ( "${{ steps.tag_generator.outputs.new_version }}" ) { "${{ steps.tag_generator.outputs.new_version }}" } else { $null }
 
-      #     # fetch all tags from remote
-      #     git fetch --all --tags
+          # fetch all tags from remote
+          git fetch --all --tags
 
-      #     $gitTagsList = git tag
-      #     $projectCurrentVersion = ( $gitTagsList | Where-Object { $_ -notmatch 'v' } | Sort-Object { [Version] $_ } -Descending )[0] -replace ' ', ''
-      #     $projectNewVersion = $gitNewVersion ?? $projectCurrentVersion
+          $gitTagsList = git tag
+          $projectCurrentVersion = ( $gitTagsList | Where-Object { $_ -notmatch 'v' } | Sort-Object { [Version] $_ } -Descending )[0] -replace ' ', ''
+          $projectNewVersion = $gitNewVersion ?? $projectCurrentVersion
 
-      #     Write-Output "::set-output name=project_version::$(echo $projectNewVersion)"
+          Write-Output "::set-output name=project_version::$(echo $projectNewVersion)"
 
       # Build and test validation
 
@@ -127,18 +127,18 @@ jobs:
       - name: Publish project for each target framework
         shell: pwsh
         run: |
-          $pathToProject = "src\PerfView\PerfView.csproj"
+          $pathToSolution = "PerfView.sln"
           $configurationSetting = "Release"
           $publishOutputFolder = "Publish outputs"
           $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
-          $targetFrameworksProperty = [String](([xml](Get-Content -Path $pathToProject)).Project.PropertyGroup.TargetFrameworks)
+          $targetFrameworksProperty = [String](([xml](Get-Content -Path $pathToSolution)).Project.PropertyGroup.TargetFrameworks)
           $targetFrameworks = $targetFrameworksProperty.split(';')
           $githubRunNumber = ${{ github.run_number }}
 
           foreach ( $framework in $targetFrameworks ) {
             $frameworkNum = [String]($framework -replace ' ', '')
 
-            dotnet publish $pathToProject `
+            dotnet publish $pathToSolution `
             --configuration $configurationSetting `
             --output "$publishOutputFolder/$frameworkNum" `
             --framework $frameworkNum `
