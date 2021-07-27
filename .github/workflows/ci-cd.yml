@@ -137,7 +137,7 @@ jobs:
             --configuration $configurationSetting `
             --output "$publishOutputFolder/" `
             --no-restore `
-            # -property:VersionPrefix=$projectVersion `
+            -property:VersionPrefix=$projectVersion `
             -property:VersionSuffix=$githubRunNumber
 
       - name: Upload publish output as pipeline artifact
