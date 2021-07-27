@@ -127,7 +127,7 @@ jobs:
       - name: Publish project for each target framework
         shell: pwsh
         run: |
-          $pathToSolution = "PerfView.sln"
+          $pathToSolution = "src\PerfView\PerfView.csproj"
           $configurationSetting = "Release"
           $publishOutputFolder = "Publish outputs"
           $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
