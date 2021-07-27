@@ -139,7 +139,6 @@ jobs:
             --no-restore `
             # -property:VersionPrefix=$projectVersion `
             -property:VersionSuffix=$githubRunNumber
-          }
 
       - name: Upload publish output as pipeline artifact
         uses: actions/upload-artifact@v2
