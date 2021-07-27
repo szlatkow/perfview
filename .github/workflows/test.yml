@@ -6,6 +6,8 @@ jobs:
   ci:
     name: Continuous Integration
     runs-on: windows-2019
+    outputs:
+      latest_version: ${{ steps.tag_generator.outputs.new_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -14,18 +16,38 @@ jobs:
 
       # Tooling setup
 
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v1
-
       - name: Install .NET SDK
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 2.1.505
 
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.411
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v1
+
       - name: Restore solution
         shell: pwsh
-        run: nuget restore PerfView.sln
+        run: |
+          $pathToSolution = "PerfView.sln"
+
+          nuget restore $pathToSolution
 
       - name: Build solution
         shell: pwsh
-        run: dotnet build PerfView.sln --configuration Release
+        run: |
+          $pathToSolution = "PerfView.sln"
+          $configurationSetting = "Release"
+          $restorePackages = "false"
+
+          msbuild $pathToSolution `
+          /p:Configuration=$configurationSetting `
+          /p:RestorePackages=$restorePackages
+          
+      - name: Publish project for each target framework
+        shell: pwsh
+        run: |
+            dotnet publish $pathToSolution --configuration Release --output "./Output" --no-restore -property:VersionSuffix=${{ github.run_number }}
