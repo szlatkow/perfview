@@ -50,4 +50,4 @@ jobs:
       - name: Publish project for each target framework
         shell: pwsh
         run: |
-            dotnet publish $pathToSolution --configuration Release --output "./Output" --no-build -property:VersionSuffix=${{ github.run_number }}
+            dotnet publish src\PerfView\PerfView.csproj $pathToSolution --configuration Release --output "./Output" --no-build -property:VersionSuffix=${{ github.run_number }}
