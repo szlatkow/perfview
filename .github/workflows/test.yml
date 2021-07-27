@@ -47,7 +47,13 @@ jobs:
           /p:Configuration=$configurationSetting `
           /p:RestorePackages=$restorePackages
           
-      - name: Publish project for each target framework
+      - name: Publish project
         shell: pwsh
         run: |
-            dotnet publish src\PerfView\PerfView.csproj $pathToSolution --configuration Release --output "./Output" --no-build -property:VersionSuffix=${{ github.run_number }}
+          nuget pack src\PerfView\PerfView.csproj -OutputDirectory Artifacts
+
+      - name: Upload publish output as pipeline artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Publish outputs
+          path: 'Atrifacts/'
