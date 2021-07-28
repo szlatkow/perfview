@@ -51,7 +51,7 @@ jobs:
         shell: pwsh
         run: |
           nuget pack src\PerfView\PerfView.csproj -OutputDirectory Artifacts
-          msbuild /property:Configuration=Release /property:DeployOnBuild=true /p:OutputPath=Artifacts
+          msbuild src\PerfView\PerfView.csproj /property:Configuration=Release /property:DeployOnBuild=true /p:OutputPath=Artifacts
 
       - name: Upload publish output as pipeline artifact
         uses: actions/upload-artifact@v2
