@@ -1,0 +1,44 @@
+name: CodeQL Analysis
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: windows-latest
+    steps:
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 2.1.505
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          queries: security-and-quality
+
+      - name: Build solution
+        run: |
+          $pathToSolution = "PerfView.sln"
+          $buildConfiguration = "Release"
+
+          dotnet nuget locals all --clear
+
+          dotnet clean $pathToSolution `
+          --configuration $buildConfiguration
+
+          nuget restore $pathToSolution
+
+          msbuild $pathToSolution /p:Configuration=$buildConfiguration
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
