@@ -169,7 +169,7 @@ jobs:
       - name: Pack solution
         shell: pwsh
         run: |
-          $pathToSolution = ""
+          $pathToSolution = "PerfView.sln"
           $configurationSetting = "Release"
           $packOutputFolder = "NuGet"
           $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
