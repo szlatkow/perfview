@@ -114,6 +114,7 @@ jobs:
 
       - name: Run unit tests
         shell: pwsh
+        continue-on-error: true
         run: |
           $pathToTestProject = "src\PerfView.Tests\PerfView.Tests.csproj"
           $configurationSetting = "Release"
