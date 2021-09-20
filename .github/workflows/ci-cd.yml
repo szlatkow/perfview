@@ -175,7 +175,7 @@ jobs:
 
           nuget pack src\PerfView\PerfView.csproj `
           -Properties Configuration=$configurationSetting `
-          -OutputDirectory:$packOutputFolder `
+          -OutputDirectory $packOutputFolder `
           -IncludeReferencedProjects
 
       - name: Upload NuGet packages as pipeline artifact
