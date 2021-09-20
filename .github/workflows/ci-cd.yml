@@ -166,22 +166,17 @@ jobs:
           name: Publish outputs
           path: 'Publish outputs/'
 
-      - name: Pack solution
+      - name: Pack Project
         shell: pwsh
         run: |
-          $pathToSolution = "PerfView.sln"
+          $pathToProject = "src\PerfView\PerfView.csproj"
           $configurationSetting = "Release"
           $packOutputFolder = "NuGet"
-          $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
-          $githubRunNumber = ${{ github.run_number }}
 
-          dotnet pack $pathToSolution `
-          --configuration $configurationSetting `
-          --output $packOutputFolder `
-          --include-symbols `
-          --no-restore `
-          -property:VersionPrefix=$projectVersion `
-          -property:VersionSuffix=$githubRunNumber
+          nuget pack src\PerfView\PerfView.csproj `
+          -Properties Configuration=$configurationSetting `
+          -OutputDirectory=$packOutputFolder `
+          -IncludeReferencedProjects
 
       - name: Upload NuGet packages as pipeline artifact
         uses: actions/upload-artifact@v2
