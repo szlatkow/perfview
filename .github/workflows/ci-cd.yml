@@ -141,7 +141,7 @@ jobs:
       #   shell: pwsh
       #   run: |
       #     $pathToProject = ""
-      #     $configurationSetting = "Release"
+      #     $configurationSetting = "Debug"
       #     $publishOutputFolder = "Publish outputs"
       #     $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
       #     $targetFrameworksProperty = [String](([xml](Get-Content -Path $pathToProject)).Project.PropertyGroup.TargetFrameworks)
@@ -160,29 +160,27 @@ jobs:
       #       -property:VersionSuffix=$githubRunNumber
       #     }
 
-      - name: Upload publish output as pipeline artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Publish outputs
-          path: 'Publish outputs/'
+      # - name: Upload publish output as pipeline artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: Publish outputs
+      #     path: 'Publish outputs/'
 
-      - name: Pack Project
+      - name: Pack solution
         shell: pwsh
         run: |
-          $pathToProject = "src\PerfView\PerfView.csproj"
+          $pathToSolution = "PerfView.sln"
           $configurationSetting = "Release"
           $packOutputFolder = "NuGet"
+          $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
+          $githubRunNumber = ${{ github.run_number }}
 
-          nuget pack src\PerfView\PerfView.csproj `
-          -Properties Configuration=$configurationSetting `
-          -OutputDirectory $packOutputFolder `
-          -IncludeReferencedProjects
-
-      - name: Upload NuGet packages as pipeline artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: NuGet packages
-          path: NuGet/
+          dotnet pack $pathToSolution `
+          --configuration $configurationSetting `
+          --output $packOutputFolder `
+          --no-restore `
+          -property:VersionPrefix=$projectVersion `
+          -property:VersionSuffix=$githubRunNumber
 
 #   cd:
 #     if: needs.ci.outputs.latest_version != ''
