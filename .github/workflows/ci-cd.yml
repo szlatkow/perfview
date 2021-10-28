@@ -137,24 +137,18 @@ jobs:
 
       # # Artifact generation and publish to pipeline
 
-      - name: Publish project for each target framework
+      - name: Publish project for target framework
         shell: pwsh
         run: |
           $pathToProject = "src\PerfView\PerfView.csproj"
           $configurationSetting = "Debug"
           $publishOutputFolder = "Publish outputs"
           $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
-          $targetFrameworksProperty = [String](([xml](Get-Content -Path $pathToProject)).Project.PropertyGroup.TargetFrameworks)
-          $targetFrameworks = $targetFrameworksProperty.split(';')
           $githubRunNumber = ${{ github.run_number }}
-
-          foreach ( $framework in $targetFrameworks ) {
-            $frameworkNum = [String]($framework -replace ' ', '')
 
             dotnet publish $pathToProject `
             --configuration $configurationSetting `
             --output "$publishOutputFolder/$frameworkNum" `
-            --framework $frameworkNum `
             --no-restore `
             -property:VersionPrefix=$projectVersion `
             -property:VersionSuffix=$githubRunNumber
