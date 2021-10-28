@@ -137,50 +137,34 @@ jobs:
 
       # # Artifact generation and publish to pipeline
 
-      # - name: Publish project for each target framework
-      #   shell: pwsh
-      #   run: |
-      #     $pathToProject = ""
-      #     $configurationSetting = "Debug"
-      #     $publishOutputFolder = "Publish outputs"
-      #     $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
-      #     $targetFrameworksProperty = [String](([xml](Get-Content -Path $pathToProject)).Project.PropertyGroup.TargetFrameworks)
-      #     $targetFrameworks = $targetFrameworksProperty.split(';')
-      #     $githubRunNumber = ${{ github.run_number }}
-
-      #     foreach ( $framework in $targetFrameworks ) {
-      #       $frameworkNum = [String]($framework -replace ' ', '')
-
-      #       dotnet publish $pathToProject `
-      #       --configuration $configurationSetting `
-      #       --output "$publishOutputFolder/$frameworkNum" `
-      #       --framework $frameworkNum `
-      #       --no-restore `
-      #       -property:VersionPrefix=$projectVersion `
-      #       -property:VersionSuffix=$githubRunNumber
-      #     }
-
-      # - name: Upload publish output as pipeline artifact
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: Publish outputs
-      #     path: 'Publish outputs/'
-
-      - name: Pack solution
+      - name: Publish project for each target framework
         shell: pwsh
         run: |
-          $pathToSolution = "PerfView.sln"
-          $configurationSetting = "Release"
-          $packOutputFolder = "NuGet"
+          $pathToProject = "src\PerfView\PerfView.csproj"
+          $configurationSetting = "Debug"
+          $publishOutputFolder = "Publish outputs"
           $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
+          $targetFrameworksProperty = [String](([xml](Get-Content -Path $pathToProject)).Project.PropertyGroup.TargetFrameworks)
+          $targetFrameworks = $targetFrameworksProperty.split(';')
           $githubRunNumber = ${{ github.run_number }}
 
-          dotnet pack $pathToSolution `
-          --configuration $configurationSetting `
-          --output $packOutputFolder `
-          --no-restore `
-          -property:VersionPrefix=$projectVersion `
-          -property:VersionSuffix=$githubRunNumber
+          foreach ( $framework in $targetFrameworks ) {
+            $frameworkNum = [String]($framework -replace ' ', '')
+
+            dotnet publish $pathToProject `
+            --configuration $configurationSetting `
+            --output "$publishOutputFolder/$frameworkNum" `
+            --framework $frameworkNum `
+            --no-restore `
+            -property:VersionPrefix=$projectVersion `
+            -property:VersionSuffix=$githubRunNumber
+          }
+
+      - name: Upload publish output as pipeline artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Publish outputs
+          path: 'Publish outputs/'
 
 #   cd:
 #     if: needs.ci.outputs.latest_version != ''
