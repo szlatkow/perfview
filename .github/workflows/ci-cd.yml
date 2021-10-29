@@ -77,20 +77,20 @@ jobs:
           release_branches: ${{ steps.data_gatherer.outputs.default_branch }}
           tag_prefix: ''
 
-      # - name: Project version determiner
-      #   id: version_determiner
-      #   shell: pwsh
-      #   run: |
-      #     $gitNewVersion = if ( "${{ steps.tag_generator.outputs.new_version }}" ) { "${{ steps.tag_generator.outputs.new_version }}" } else { $null }
+      - name: Project version determiner
+        id: version_determiner
+        shell: pwsh
+        run: |
+          $gitNewVersion = if ( "${{ steps.tag_generator.outputs.new_version }}" ) { "${{ steps.tag_generator.outputs.new_version }}" } else { $null }
 
-      #     # fetch all tags from remote
-      #     git fetch --all --tags
+          # fetch all tags from remote
+          git fetch --all --tags
 
-      #     $gitTagsList = git tag
-      #     $projectCurrentVersion = ( $gitTagsList | Where-Object { $_ -notmatch 'v' } | Sort-Object { [Version] $_ } -Descending )[0] -replace ' ', ''
-      #     $projectNewVersion = $gitNewVersion ?? $projectCurrentVersion
+          $gitTagsList = git tag
+          $projectCurrentVersion = ( $gitTagsList | Where-Object { $_ -notmatch 'v' } | Sort-Object { [Version] $_ } -Descending )[0] -replace ' ', ''
+          $projectNewVersion = $gitNewVersion ?? $projectCurrentVersion
 
-      #     Write-Output "::set-output name=project_version::$(echo $projectNewVersion)"
+          Write-Output "::set-output name=project_version::$(echo $projectNewVersion)"
 
       # Build and test validation
 
@@ -159,75 +159,86 @@ jobs:
           name: Publish outputs
           path: 'Publish outputs/'
 
-#   cd:
-#     if: needs.ci.outputs.latest_version != ''
-#     name: Continuous Deployment
-#     needs: ci
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout repository # GH CLI requires a cloned repo
-#         uses: actions/checkout@v2
+  cd:
+    if: needs.ci.outputs.latest_version != ''
+    name: Continuous Deployment
+    needs: ci
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository # GH CLI requires a cloned repo
+        uses: actions/checkout@v2
 
-#       # Tooling setup
+      # Tooling setup
 
-#       - name: Install .NET SDK
-#         uses: actions/setup-dotnet@v1
-#         with:
-#           dotnet-version: 5.0.203
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 2.1.505
 
-#       - name: Install/Update 7z
-#         shell: pwsh
-#         run: |
-#           sudo apt update
-#           sudo apt install p7zip-full p7zip-rar
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.411
 
-#       # NuGet packages publish
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v1
 
-#       - name: Download and extract NuGet packages artifact
-#         uses: actions/download-artifact@v2
-#         with:
-#           name: NuGet packages
-#           path: NuGet/
+      # NuGet packages publish
 
-#       - name: Push NuGet packages to NuGet.org
-#         continue-on-error: true
-#         shell: pwsh
-#         run: |
-#           $packagePath = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg"
-#           $nugetSource = "https://api.nuget.org/v3/index.json"
-#           $nugetApiKey = "${{ secrets.NUGET_API_KEY }}"
+      - name: Download and extract NuGet packages artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: NuGet packages
+          path: NuGet/
 
-#           dotnet nuget push $packagePath `
-#           --source $nugetSource `
-#           --api-key $nugetApiKey
+      - name: Push NuGet packages to NuGet.org
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $packagePath = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg"
+          $nugetSource = "https://api.nuget.org/v3/index.json"
+          $nugetApiKey = "${{ secrets.NUGET_API_KEY }}"
 
-#       # GitHub release preparation and publish
+          dotnet nuget push $packagePath `
+          --source $nugetSource `
+          --api-key $nugetApiKey
 
-#       - name: Download and extract assemblies artifact
-#         uses: actions/download-artifact@v2
-#         with:
-#           name: Publish outputs
-#           path: 'Publish outputs/'
+      # GitHub release preparation and publish
 
-#       - name: Archive assemblies for release
-#         shell: pwsh
-#         run: |
-#           cd './Publish outputs'
-#           7z a '${{ github.workspace }}/ ${{ needs.ci.outputs.latest_version }} Assemblies.7z' .
+      - name: Download and extract assemblies artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: Publish outputs
+          path: 'Publish outputs/'
 
-#       - name: Create and publish release
-#         shell: pwsh
-#         run: |
-#           $releaseTag = "${{ needs.ci.outputs.latest_version }}"
-#           $releaseTitle = " ${{ needs.ci.outputs.latest_version }}"
-#           $releaseNotes = ""
-#           $releaseAssets = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg", "NuGet/.${{ needs.ci.outputs.latest_version }}.snupkg", " ${{ needs.ci.outputs.latest_version }} Assemblies.7z"
+      - name: Create and publish release for TraceEvent
+        shell: pwsh
+        run: |
+          $releaseTag = "T${{ needs.ci.outputs.latest_version }}"
+          $releaseTitle = "TraceEvent ${{ needs.ci.outputs.latest_version }}"
+          $releaseNotes = ""
+          $releaseAssets = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg", "NuGet/.${{ needs.ci.outputs.latest_version }}.snupkg"
 
-#           gh release create $releaseTag `
-#           --title $releaseTitle `
-#           --notes $releaseNotes `
-#           $releaseAssets
-#         env:
-#           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          gh release create $releaseTag `
+          --title $releaseTitle `
+          --notes $releaseNotes `
+          $releaseAssets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and publish release for PerfView
+        shell: pwsh
+        run: |
+          $releaseTag = "P${{ needs.ci.outputs.latest_version }}"
+          $releaseTitle = "PerfView ${{ needs.ci.outputs.latest_version }}"
+          $releaseNotes = ""
+          $releaseAssets = "NuGet/.${{ needs.ci.outputs.latest_version }}.nupkg", "NuGet/.${{ needs.ci.outputs.latest_version }}.snupkg", " ${{ needs.ci.outputs.latest_version }} Assemblies.7z"
+
+          gh release create $releaseTag `
+          --title $releaseTitle `
+          --notes $releaseNotes `
+          $releaseAssets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 # # Built with ❤ by [Pipeline Foundation](https://pipeline.foundation)
