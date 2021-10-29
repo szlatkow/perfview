@@ -86,7 +86,7 @@ jobs:
           # fetch all tags from remote
           git fetch --all --tags
 
-          $projectCurrentVersion = [String]((git tag --sort=-committerdate)[0]) -replace 'T', ''
+          $projectCurrentVersion = [String]((git tag --sort=-committerdate)[0]) -replace 'T, P, V', ''
           $projectNewVersion = $gitNewVersion ?? $projectCurrentVersion
 
           Write-Output "::set-output name=project_version::$(echo $projectNewVersion)"
