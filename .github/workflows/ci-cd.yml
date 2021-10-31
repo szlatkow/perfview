@@ -104,9 +104,10 @@ jobs:
 
           msbuild $pathToSolution `
           /p:Configuration=$configurationSetting `
-          /p:RestorePackages=$restorePackages
-          /p:Platform="Any CPU"
-          /p:OutputPath=Publish outputs
+          /p:RestorePackages=$restorePackages `
+          /p:DeployOnBuild=true `
+          /p:Platform="Any CPU" `
+          /p:OutputPath="Publish outputs"
 
       # - name: Run unit tests
       #   shell: pwsh
