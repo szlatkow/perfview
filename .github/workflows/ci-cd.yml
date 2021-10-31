@@ -24,6 +24,10 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v1
 
+      - name: Add .NETStandard Library
+        shell: pwsh
+        run: dotnet add package NETStandard.Library.NETFramework --version 2.0.0-preview1-25305-02
+
       # Information setup
 
       - name: Pipeline data gatherer
