@@ -5,7 +5,7 @@ on: [ push, pull_request, workflow_dispatch ]
 jobs:
   ci:
     name: Continuous Integration
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     outputs:
       latest_version: ${{ steps.tag_generator.outputs.new_version }}
     steps:
@@ -147,7 +147,7 @@ jobs:
 
             dotnet publish $pathToProject `
             --configuration $configurationSetting `
-            --output "$publishOutputFolder/$frameworkNum" `
+            --output "$publishOutputFolder/" `
             --no-restore `
             -property:VersionPrefix=$projectVersion `
             -property:VersionSuffix=$githubRunNumber
