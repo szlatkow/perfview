@@ -5,7 +5,7 @@ on: [ push, pull_request, workflow_dispatch ]
 jobs:
   ci:
     name: Continuous Integration
-    runs-on: ubuntu-latest
+    runs-on: windows-2019
     outputs:
       latest_version: ${{ steps.tag_generator.outputs.new_version }}
     steps:
@@ -20,11 +20,6 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 2.1.505
-
-      - name: Install .NET SDK
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: 3.1.411
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v1
