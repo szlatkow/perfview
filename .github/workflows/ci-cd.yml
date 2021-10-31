@@ -95,7 +95,7 @@ jobs:
 
           nuget restore $pathToSolution
 
-      - name: Build solution
+      - name: Build and Publish solution
         shell: pwsh
         run: |
           $pathToSolution = "PerfView.sln"
@@ -105,6 +105,8 @@ jobs:
           msbuild $pathToSolution `
           /p:Configuration=$configurationSetting `
           /p:RestorePackages=$restorePackages
+          /p:Platform="Any CPU"
+          /p:OutputPath=Publish outputs
 
       # - name: Run unit tests
       #   shell: pwsh
@@ -146,20 +148,6 @@ jobs:
       #       --no-restore `
       #       -property:VersionPrefix=$projectVersion `
       #       -property:VersionSuffix=$githubRunNumber
-
-      - name: Publish project
-        shell: pwsh
-        run: |
-          $pathToSolution = "PerfView.sln"
-          $configurationSetting = "Release"
-          $restorePackages = "false"
-
-          msbuild $pathToSolution `
-          /p:Configuration=$configurationSetting `
-          /p:RestorePackages=$restorePackages
-          /p:DeployOnBuild=true
-          /p:Platform="Any CPU"
-          /p:OutputPath=Publish outputs
 
       - name: Upload publish output as pipeline artifact
         uses: actions/upload-artifact@v2
