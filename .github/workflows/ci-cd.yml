@@ -106,46 +106,60 @@ jobs:
           /p:Configuration=$configurationSetting `
           /p:RestorePackages=$restorePackages
 
-      - name: Run unit tests
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $pathToTestProject = "src\PerfView.Tests\PerfView.Tests.csproj"
-          $configurationSetting = "Release"
-          $projectName = "${{ github.event.repository.name }}"
-          $date = Get-Date -Format "MM-dd-yyyy"
-          $loggerAttributes = "trx;LogFileName=$projectName-$date.trx;verbosity=normal"
-          $testOutputFolder = "Test results"
+      # - name: Run unit tests
+      #   shell: pwsh
+      #   continue-on-error: true
+      #   run: |
+      #     $pathToTestProject = "src\PerfView.Tests\PerfView.Tests.csproj"
+      #     $configurationSetting = "Release"
+      #     $projectName = "${{ github.event.repository.name }}"
+      #     $date = Get-Date -Format "MM-dd-yyyy"
+      #     $loggerAttributes = "trx;LogFileName=$projectName-$date.trx;verbosity=normal"
+      #     $testOutputFolder = "Test results"
 
-          dotnet test $pathToProject `
-          --configuration $configurationSetting `
-          --logger $loggerAttributes `
-          --results-directory $testOutputFolder `
-          --no-build
+      #     dotnet test $pathToProject `
+      #     --configuration $configurationSetting `
+      #     --logger $loggerAttributes `
+      #     --results-directory $testOutputFolder `
+      #     --no-build
 
-      - name: Upload test results as pipeline artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Test results
-          path: 'Test results/'
+      # - name: Upload test results as pipeline artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: Test results
+      #     path: 'Test results/'
 
       # # Artifact generation and publish to pipeline
 
-      - name: Publish project for target framework
+      # - name: Publish project for target framework
+      #   shell: pwsh
+      #   run: |
+      #     $pathToProject = "src\PerfView\PerfView.csproj"
+      #     $configurationSetting = "Debug"
+      #     $publishOutputFolder = "Publish outputs"
+      #     $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
+      #     $githubRunNumber = ${{ github.run_number }}
+
+      #       dotnet publish $pathToProject `
+      #       --configuration $configurationSetting `
+      #       --output "$publishOutputFolder/" `
+      #       --no-restore `
+      #       -property:VersionPrefix=$projectVersion `
+      #       -property:VersionSuffix=$githubRunNumber
+
+      - name: Publish project
         shell: pwsh
         run: |
-          $pathToProject = "src\PerfView\PerfView.csproj"
-          $configurationSetting = "Debug"
-          $publishOutputFolder = "Publish outputs"
-          $projectVersion = "${{ steps.version_determiner.outputs.project_version }}"
-          $githubRunNumber = ${{ github.run_number }}
+          $pathToSolution = "PerfView.sln"
+          $configurationSetting = "Release"
+          $restorePackages = "false"
 
-            dotnet publish $pathToProject `
-            --configuration $configurationSetting `
-            --output "$publishOutputFolder/" `
-            --no-restore `
-            -property:VersionPrefix=$projectVersion `
-            -property:VersionSuffix=$githubRunNumber
+          msbuild $pathToSolution `
+          /p:Configuration=$configurationSetting `
+          /p:RestorePackages=$restorePackages
+          /p:DeployOnBuild=true
+          /p:Platform="Any CPU"
+          /p:OutputPath=Publish outputs
 
       - name: Upload publish output as pipeline artifact
         uses: actions/upload-artifact@v2
