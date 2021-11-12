@@ -1113,6 +1113,12 @@ namespace PerfView
             InitializeFeedback();
         }
         public PerfViewDirectory CurrentDirectory { get { return m_CurrentDirectory; } }
+
+        public void OpenPreviouslyOpened()
+        {
+            OpenPath(App.UserConfigData["Directory"]  ?? ".");
+        }
+
         /// <summary>
         /// Set the left pane to the specified directory.  If it is a file name, then that file name is opened
         /// </summary>
@@ -1149,6 +1155,7 @@ namespace PerfView
                         App.UserConfigData["DirectoryHistory"] = sb.ToString();
                     }
 
+                    App.UserConfigData["Directory"] = fullPath;
                     FileFilterTextBox.Text = "";
                     m_CurrentDirectory = new PerfViewDirectory(fullPath);
                     UpdateFileFilter();
@@ -1240,18 +1247,6 @@ namespace PerfView
             var memoryDialog = new Dialogs.MemoryDataDialog(App.CommandLineArgs, this, continuation);
             memoryDialog.Show();        // Can't be a true dialog because you can't bring up the log otherwise.  
             // TODO FIX NOW.   no longer a dialog, ensure that it is unique?
-        }
-
-        /// <summary>
-        /// Hides the window (if it can still be reached).  
-        /// </summary>
-        public void HideWindow()
-        {
-            // TODO need count of all active children
-            if (StackWindow.StackWindows.Count > 0)
-            {
-                Visibility = System.Windows.Visibility.Hidden;
-            }
         }
 
         public RunCommandDialog CollectWindow { get; set; }
@@ -1443,8 +1438,19 @@ namespace PerfView
 
         private void DoHide(object sender, RoutedEventArgs e)
         {
-            HideWindow();
+            // TODO need count of all active children
+            if (StackWindow.StackWindows.Count > 0)
+            {
+                Visibility = Visibility.Hidden;
+            }
         }
+
+        private void CanHide(object sender, CanExecuteRoutedEventArgs e)
+        {
+            // TODO need count of all active children
+            e.CanExecute = StackWindow.StackWindows.Count > 0;
+        }
+
         private void DoUserCommand(object sender, RoutedEventArgs e)
         {
             if (m_UserDefineCommandDialog == null)
