@@ -323,6 +323,14 @@ namespace Microsoft.Diagnostics.Tracing
         public bool DataLifetimeEnabled() { return DataLifetimeMsec > 0; }
 
         /// <summary>
+        /// Finalizer
+        /// </summary>
+        ~TraceEventSource()
+        {
+            Dispose(false);
+        }
+
+        /// <summary>
         /// Closes any files and cleans up any resources associated with this TraceEventSource
         /// </summary>
         public void Dispose()
@@ -2931,7 +2939,7 @@ namespace Microsoft.Diagnostics.Tracing
                 }
 
                 // We register the same name for old classic and manifest for some old GC events (
-                if (eventName.StartsWith("GC") && template.ID == (TraceEventID)0xFFFF &&
+                if (eventName.StartsWith("GC", StringComparison.Ordinal) && template.ID == (TraceEventID)0xFFFF &&
                     (template.ProviderGuid == ClrTraceEventParser.ProviderGuid || template.providerGuid == ClrTraceEventParser.NativeProviderGuid))
                 {
                     return;

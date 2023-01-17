@@ -2756,7 +2756,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             add
             {
-                source.RegisterEventTemplate(new ObjectHandleTraceData(null, 0xFFFF, 0, "Object", ObjectTaskGuid, 32, "CreateHandle", ProviderGuid, ProviderName, State));
+                source.RegisterEventTemplate(new ObjectHandleTraceData(value, 0xFFFF, 0, "Object", ObjectTaskGuid, 32, "CreateHandle", ProviderGuid, ProviderName, State));
             }
             remove
             {
@@ -2767,7 +2767,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             add
             {
-                source.RegisterEventTemplate(new ObjectHandleTraceData(null, 0xFFFF, 0, "Object", ObjectTaskGuid, 33, "CloseHandle", ProviderGuid, ProviderName, State));
+                source.RegisterEventTemplate(new ObjectHandleTraceData(value, 0xFFFF, 0, "Object", ObjectTaskGuid, 33, "CloseHandle", ProviderGuid, ProviderName, State));
             }
             remove
             {
@@ -2778,7 +2778,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             add
             {
-                source.RegisterEventTemplate(new ObjectHandleTraceData(null, 0xFFFF, 0, "Object", ObjectTaskGuid, 34, "DuplicateHandle", ProviderGuid, ProviderName, State));
+                source.RegisterEventTemplate(new ObjectDuplicateHandleTraceData(value, 0xFFFF, 0, "Object", ObjectTaskGuid, 34, "DuplicateHandle", ProviderGuid, ProviderName, State));
             }
             remove
             {
@@ -2789,7 +2789,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             add
             {
-                source.RegisterEventTemplate(new ObjectNameTraceData(null, 0xFFFF, 0, "Object", ObjectTaskGuid, 39, "HandleDCEnd", ProviderGuid, ProviderName, null));
+                source.RegisterEventTemplate(new ObjectNameTraceData(value, 0xFFFF, 0, "Object", ObjectTaskGuid, 39, "HandleDCEnd", ProviderGuid, ProviderName, null));
             }
             remove
             {
@@ -2800,7 +2800,7 @@ namespace Microsoft.Diagnostics.Tracing.Parsers
         {
             add
             {
-                source.RegisterEventTemplate(new ObjectTypeNameTraceData(null, 0xFFFF, 0, "Object", ObjectTaskGuid, 37, "TypeDCEnd", ProviderGuid, ProviderName, null));
+                source.RegisterEventTemplate(new ObjectTypeNameTraceData(value, 0xFFFF, 0, "Object", ObjectTaskGuid, 37, "TypeDCEnd", ProviderGuid, ProviderName, null));
             }
             remove
             {
@@ -11685,7 +11685,6 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Kernel
         internal VirtualAllocTraceData(Action<VirtualAllocTraceData> action, int eventID, int task, string taskName, Guid taskGuid, int opcode, string opcodeName, Guid providerGuid, string providerName, KernelTraceEventParserState state)
             : base(eventID, task, taskName, taskGuid, opcode, opcodeName, providerGuid, providerName)
         {
-            NeedsFixup = true;
             Action = action;
             this.state = state;
         }
@@ -11700,13 +11699,6 @@ namespace Microsoft.Diagnostics.Tracing.Parsers.Kernel
             Action(this);
         }
 
-        internal override unsafe void FixupData()
-        {
-            // We always choose the process ID to be the process where for the allocation happens 
-            // TODO Is this really a good idea?  
-            // Debug.Assert(eventRecord->EventHeader.ProcessId == -1 || eventRecord->EventHeader.ProcessId == GetInt32At(HostOffset(8, 2)));
-            eventRecord->EventHeader.ProcessId = GetInt32At(HostOffset(8, 2));
-        }
         public override StringBuilder ToXml(StringBuilder sb)
         {
             Prefix(sb);
