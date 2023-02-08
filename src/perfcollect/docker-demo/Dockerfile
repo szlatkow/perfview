@@ -2,7 +2,7 @@
 # Docker image for performance testing of .NET Core.
 ####################################################
 # DisableDockerDetector "Example DockerFile"
-FROM ubuntu:14.04
+FROM ubuntu:22.04
 
 # Install curl so that we can download dependencies.
 RUN apt-get -y update && apt-get install -y curl
