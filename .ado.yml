@@ -18,6 +18,7 @@ jobs:
       - vstest
     variables:
       Codeql.Enabled: true
+      Codeql.BuildIdentifier: PerfView
 
     steps:
     - task: UseDotNet@2
@@ -131,7 +132,7 @@ jobs:
 
   - job: PerfCollect
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
       name: Azure Pipelines
 
     steps:
