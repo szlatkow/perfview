@@ -50,6 +50,12 @@ namespace Microsoft.Diagnostics.Tracing.Ctf
             Debug.Assert(val >= 0 && alignment >= 0);
             return val & ~(alignment - 1);
         }
+
+        public static long AlignDown(long val, long alignment)
+        {
+            Debug.Assert(val >= 0 && alignment >= 0);
+            return val & ~(alignment - 1);
+        }
     }
 
     internal abstract class CtfMetadataType
@@ -501,13 +507,7 @@ namespace Microsoft.Diagnostics.Tracing.Ctf
         public CtfStruct(CtfPropertyBag props, CtfField[] fields)
             : base(CtfTypes.Struct)
         {
-            int alignment = 1;
-            if (props != null)
-            {
-                alignment = props.GetIntOrNull("align") ?? 1;
-            }
-
-            _align = alignment;
+            _align = props?.GetIntOrNull("align") ?? 1;
             Fields = fields;
         }
 
