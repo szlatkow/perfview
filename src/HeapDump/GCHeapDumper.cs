@@ -1256,7 +1256,7 @@ public class GCHeapDumper
         if (m_outputFileName != null)
         {
             m_log.WriteLine("{0,5:f1}s:   Started Writing to file.", m_sw.Elapsed.TotalSeconds);
-            var serializer = new Serializer(new IOStreamStreamWriter(m_outputFileName, config: new SerializationConfiguration() { StreamLabelWidth = StreamLabelWidth.FourBytes }), m_gcHeapDump);
+            var serializer = new Serializer(new IOStreamStreamWriter(m_outputFileName, settings: SerializationSettings.Default.WithStreamLabelWidth(StreamLabelWidth.FourBytes)), m_gcHeapDump);
             serializer.Close();
 
             m_log.WriteLine("Actual file size = {0:f3}MB", new FileInfo(m_outputFileName).Length / 1000000.0);
@@ -1265,21 +1265,11 @@ public class GCHeapDumper
         if (m_outputStream != null)
         {
             m_log.WriteLine("{0,5:f1}s:   Started Writing to stream.", m_sw.Elapsed.TotalSeconds);
-            var serializer = new Serializer(new IOStreamStreamWriter(m_outputStream, config: new SerializationConfiguration() { StreamLabelWidth = StreamLabelWidth.FourBytes }), m_gcHeapDump);
+            var serializer = new Serializer(new IOStreamStreamWriter(m_outputStream, settings: SerializationSettings.Default.WithStreamLabelWidth(StreamLabelWidth.FourBytes)), m_gcHeapDump);
             serializer.Close();
         }
 
         m_copyOfLog.GetStringBuilder().Length = 0;
-#if false // TODO FIX NOW remove
-        using (StreamWriter writer = File.CreateText(Path.ChangeExtension(m_outputFileName, ".heapGraph.xml")))
-        {
-            m_gcHeapDump.MemoryGraph.DumpNormalized(writer);
-        }
-        using (StreamWriter writer = File.CreateText(Path.ChangeExtension(m_outputFileName, ".rawGraph.xml")))
-        {
-            m_gcHeapDump.MemoryGraph.WriteXml(writer);
-        }
-#endif
     }
 
     private int DumpRCW(IDataReader reader, NodeIndex node, Address addr, RuntimeCallableWrapper rcw)
@@ -1598,23 +1588,6 @@ public class GCHeapDumper
     private GrowableArray<int> m_typeIdxToGraphIdx;
 
     private Dictionary<string, NodeTypeIndex> m_graphTypeIdxForArrayType;
-
-    [Conditional("DEBUG")]
-    public static void DebugWriteLine(string format, params object[] args)
-    {
-        //#if DEBUG
-#if false
-        if (m_debugLog == null)
-            m_debugLog = File.CreateText("HeapDumpDebugLog.txt");
-
-        m_debugLog.WriteLine(format, args);
-        m_debugLog.Flush();
-#endif
-    }
-
-#if false
-    private static TextWriter m_debugLog;
-#endif
     #endregion
 }
 

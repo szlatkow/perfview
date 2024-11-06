@@ -1143,11 +1143,7 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
 
             new SampleProfilerTraceEventParser(this);
             new WpfTraceEventParser(this);
-#if false
-            new AppHostTraceEventParser(newLog);
-            new ImmersiveShellTraceEventParser(newLog);
-            new XamlTraceEventParser(newLog);
-#endif
+
             var dynamicParser = Dynamic;
             registeringStandardParsers = false;
 
@@ -1626,13 +1622,6 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
 
             Action<MethodLoadUnloadVerboseTraceData> onMethodDCStop = delegate (MethodLoadUnloadVerboseTraceData data)
             {
-#if false // TODO this is a hack for VS traces that only did DCStarts but no DCStops.
-                if (data.IsJitted && data.TimeStampRelativeMSec < 4000)
-                {
-                    jittedMethods.Add((MethodLoadUnloadVerboseTraceData)data.Clone());
-                }
-#endif
-
                 codeAddresses.AddMethod(data);
                 bookKeepingEvent = true;
             };
@@ -3543,19 +3532,7 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 AddTemplatesForParser(parser, etlxSource);
             }
 
-            // Debug.WriteLine("Got a TraceLog dispatcher");
-            // etlxSource.DumpToDebugString();
             return etlxSource;
-#if false
-                // TODO FIX NOW ACTIVITIES: review
-            if (this.HasActivitySubscriptions)
-            {
-                ret.activityScheduled = this.activityScheduled;
-                ret.activityStarted = this.activityStarted;
-                ret.activityCompleted = this.activityCompleted;
-                Log.TraceActivities.SubscribeToActivityTracingEvents(ret, true);
-            }
-#endif
         }
 
         private void AddTemplatesForParser(TraceEventParser parser, TraceLogEventSource ret)
@@ -3603,8 +3580,7 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
             Debug.Assert(sizeof(TraceEventNativeMethods.EVENT_HEADER) == 0x50 && sizeof(TraceEventNativeMethods.ETW_BUFFER_CONTEXT) == 4);
 
             // As of TraceLog version 74, all StreamLabels are 64-bit.  See IFastSerializableVersion for details.
-            Deserializer deserializer = new Deserializer(new PinnedStreamReader(etlxFilePath, 0x10000), etlxFilePath);
-            deserializer.TypeResolver = typeName => System.Type.GetType(typeName);  // resolve types in this assembly (and mscorlib)
+            Deserializer deserializer = new Deserializer(new PinnedStreamReader(etlxFilePath, SerializationSettings.Default, 0x10000), etlxFilePath);
 
             // when the deserializer needs a TraceLog we return the current instance.  We also assert that
             // we only do this once.
@@ -3639,18 +3615,12 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 return new DynamicTraceEventData(null, 0, 0, null, Guid.Empty, 0, null, Guid.Empty, null);
             });
 
-            // when the serializer needs any TraceEventParser class, we assume that its constructor
-            // takes an argument of type TraceEventSource and that you can pass null to make an
-            // 'empty' parser to fill in with FromStream.
-            deserializer.RegisterDefaultFactory(delegate (Type typeToMake)
-            {
-                if (typeToMake.GetTypeInfo().IsSubclassOf(typeof(TraceEventParser)))
-                {
-                    return (IFastSerializable)Activator.CreateInstance(typeToMake, new object[] { null });
-                }
-
-                return null;
-            });
+            deserializer.RegisterType(typeof(KernelTraceEventParserState));
+            deserializer.RegisterType(typeof(KernelToUserDriveMapping));
+            deserializer.RegisterType(typeof(DynamicTraceEventParserState));
+            deserializer.RegisterType(typeof(ExternalTraceEventParserState));
+            deserializer.RegisterType(typeof(ClrTraceEventParserState));
+            deserializer.RegisterType(typeof(TraceCodeAddresses.ILToNativeMap));
 
             IFastSerializable entry = deserializer.GetEntryObject();
 
@@ -4568,69 +4538,6 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
         /// </summary>
         public override int EventsLost { get { return TraceLog.EventsLost; } }
 
-#if false // TODO FIX NOW use or remove 4/2014
-        // TODO FIX NOW ACTIVITIES: review
-        /// <summary>
-        /// Fires when a new activity is scheduled. Client code should register to this
-        /// event to get one unified notification for all ETW events marking the
-        /// "scheduling" of some future work.
-        ///   (o) The first argument can be used with this[newActivityIndex] to
-        ///       inspect details related to the activity.
-        ///   (o) The second argument represents the ETW event that marked the scheduling
-        ///       of work. If client code needs this for future reference it should call
-        ///       TraceEvent.Clone() to store a copy.
-        /// </summary>
-        public event Action<ActivityIndex, TraceEvent> ActivityScheduled
-        {
-            add
-            { activityScheduled += value; Log.TraceActivities.SubscribeToActivityTracingEvents(this, true); }
-            remove
-            { activityScheduled -= value; if (!HasActivitySubscriptions) Log.TraceActivities.SubscribeToActivityTracingEvents(this, false); }
-        }
-    /// <summary>
-        /// Fires when a new activity is starting. Client code should register to this
-        /// event to get one unified notification for all ETW events marking the
-        /// "beginning" of work for the scheduled activity.
-        ///   (o) The first argument can be used with this[ActivityIndex] to
-        ///       inspect details related to the activity starting execution.
-        ///   (o) The second argument represents the ETW event that marked the beginning
-        ///       of work. If client code needs this for future reference it should call
-        ///       TraceEvent.Clone() to store a copy.
-        /// </summary>
-        public event Action<ActivityIndex, TraceEvent> ActivityStarted
-        {
-            add
-            { activityStarted += value; Log.TraceActivities.SubscribeToActivityTracingEvents(this, true); }
-            remove
-            { activityStarted -= value; if (!HasActivitySubscriptions) Log.TraceActivities.SubscribeToActivityTracingEvents(this, false); }
-        }
-        /// <summary>
-        /// Fires when an activity has completed. Client code should register to this
-        /// event to get one unified notification for all ETW events marking the
-        /// "completion" of work for the scheduled activity.
-        ///   (o) The first argument can be used with this[ActivityIndex] to
-        ///       inspect details related to the activity that just completed.
-        ///   (o) The second argument represents the ETW event that marked the beginning
-        ///       of work. If client code needs this for future reference it should call
-        ///       TraceEvent.Clone() to store a copy.
-        /// </summary>
-        public event Action<ActivityIndex, TraceEvent> ActivityCompleted
-        {
-            add
-            { activityCompleted += value; Log.TraceActivities.SubscribeToActivityTracingEvents(this, true); }
-            remove
-            { activityCompleted -= value; if (!HasActivitySubscriptions) Log.TraceActivities.SubscribeToActivityTracingEvents(this, false); }
-        }
-
-        internal void OnActivityScheduled(ActivityIndex uai, TraceEvent data)
-        { if (activityScheduled != null) activityScheduled(uai, data); }
-        internal void OnActivityStarted(ActivityIndex uai, TraceEvent data)
-        { if (activityScheduled != null) activityStarted(uai, data); }
-        internal void OnActivityCompleted(ActivityIndex uai, TraceEvent data)
-        { if (activityCompleted != null) activityCompleted(uai, data); }
-        internal bool HasActivitySubscriptions { get { return activityScheduled != null || activityStarted != null || activityCompleted != null; } }
-#endif
-
         #region private
         /// <summary>
         /// override
@@ -5304,12 +5211,6 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 // Confirm we have a half-way sane event, to catch obvious loss of sync.
                 Debug.Assert(ret.Level <= (TraceEventLevel)64);
                 Debug.Assert(ret.Version <= 10 || ret.Version == 255);  // some events had a wacky version number
-
-#if false // TODO FIX NOW remove or fix
-                // TODO 50000000 arbitrary.   Fix underlying problem with merged ETL files.
-                Debug.Assert(ret.TimeStampQPC == long.MaxValue ||
-                    events.Log.sessionStartTimQPC <= ret.TimeStampQPC && ret.TimeStampQPC <= events.Log.sessionEndTimeQPC + 50000000);
-#endif
 
                 // We have to ensure we have a pointer to the whole blob, not just the header.
                 int totalLength = TraceLog.headerSize + (ret.EventDataLength + 3 & ~3);
@@ -7239,10 +7140,6 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 else
                 {
                     Debug.Assert((ulong)module.ImageBase == module.key);
-#if false // TODO FIX NOW enable fails on eventSourceDemo.etl file
-                    if (lastModule != null && (ulong)lastModule.ImageBase + (uint)lastModule.ModuleFile.ImageSize > (ulong)module.ImageBase)
-                        Debug.Assert(lastModule.overlaps && module.overlaps, "Modules overlap but don't delcare that they do");
-#endif
                 }
                 lastkey = module.key;
                 lastModule = module;
