@@ -589,6 +589,11 @@ namespace Microsoft.Diagnostics.Symbols
         private SymbolReaderOptions _Options;
 
         /// <summary>
+        /// Gets or sets the timeout for symbol server requests. Default is 60 seconds.
+        /// </summary>
+        public TimeSpan ServerTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+        /// <summary>
         /// We call back on this when we find a PDB by probing in 'unsafe' locations (like next to the EXE or in the Built location)
         /// If this function returns true, we assume that it is OK to use the PDB.  
         /// </summary>
@@ -669,8 +674,8 @@ namespace Microsoft.Diagnostics.Symbols
             var clrDir = GetClrDirectoryForNGenImage(ngenImageFullPath, m_log, out privateRuntimeVerString);
             if (clrDir == null)
             {
-                m_log.WriteLine("Could not find CLR directory for NGEN image {0}, Trying .NET Core", ngenImageFullPath);
-                return HandleNetCorePdbs(ngenImageFullPath, pdbPath);
+                m_log.WriteLine("Could not find CLR directory for NGEN image {0}, Giving up", ngenImageFullPath);
+                return null;
             }
 
             // See if this is a V4.5 CLR, if so we can do line numbers too.l  
@@ -831,169 +836,6 @@ namespace Microsoft.Diagnostics.Symbols
             }
         }
 
-        /// <summary>
-        /// Given a NGEN (or ReadyToRun) image 'ngenImageFullPath' and the PDB path
-        /// that we WANT it to generate generate the PDB.  Returns either pdbPath 
-        /// on success or null on failure.  
-        /// 
-        /// TODO can be removed when we properly publish the NGEN pdbs as part of build.  
-        /// </summary>
-        private string HandleNetCorePdbs(string ngenImageFullPath, string pdbPath)
-        {
-            // We only handle NGEN PDB. 
-            if (!pdbPath.EndsWith(".ni.pdb", StringComparison.OrdinalIgnoreCase))
-            {
-                m_log.WriteLine("Not a crossGen PDB {0}", pdbPath);
-                return null;
-            }
-
-            var ngenImageDir = Path.GetDirectoryName(ngenImageFullPath);
-            var pdbDir = Path.GetDirectoryName(pdbPath);
-
-            // We need Crossgen, and there are several options, see what we can do. 
-            string crossGen = GetCrossGenExePath(ngenImageFullPath);
-            if (crossGen == null)
-            {
-                m_log.WriteLine("Could not find Crossgen.exe to generate PDBs, giving up.");
-                return null;
-            }
-
-            var winDir = Environment.GetEnvironmentVariable("winDir");
-            if (winDir == null)
-            {
-                return null;
-            }
-
-            // Make sure the output dir exists.  
-            Directory.CreateDirectory(pdbDir);
-
-            // Are these readyToRun images
-            string crossGenInputName = ngenImageFullPath;
-            if (!crossGenInputName.EndsWith(".ni.dll", StringComparison.OrdinalIgnoreCase))
-            {
-                // Note that the PDB does not pick the correct PDB signature unless the name
-                // of the PDB matches the name of the DLL (with suffixes removed).  
-
-                crossGenInputName = pdbPath.Substring(0, pdbPath.Length - 3) + "dll";
-                File.Copy(ngenImageFullPath, crossGenInputName);
-            }
-
-            var cmdLine = Command.Quote(crossGen) +
-                " /CreatePdb " + Command.Quote(pdbDir) +
-                " /Platform_Assemblies_Paths " + Command.Quote(ngenImageDir) +
-                " " + Command.Quote(crossGenInputName);
-
-            var options = new CommandOptions();
-            options.AddOutputStream(m_log);
-            options.AddNoThrow();
-
-            // Needs diasymreader.dll to be on the path.  
-            var newPath = winDir + @"\Microsoft.NET\Framework\v4.0.30319" + ";" +
-                winDir + @"\Microsoft.NET\Framework64\v4.0.30319" + ";%PATH%";
-            options.AddEnvironmentVariable("PATH", newPath);
-            options.AddCurrentDirectory(ngenImageDir);
-            m_log.WriteLine("**** Running CrossGen");
-            m_log.WriteLine("set PATH=" + newPath);
-            m_log.WriteLine("{0}\r\n", cmdLine);
-            var cmd = Command.Run(cmdLine, options);
-
-            // Delete the temporary file if necessary
-            if (crossGenInputName != ngenImageFullPath)
-            {
-                FileUtilities.ForceDelete(crossGenInputName);
-            }
-
-            if (cmd.ExitCode != 0 || !File.Exists(pdbPath))
-            {
-                m_log.WriteLine("CrossGen failed to generate {0} exit code {0}", pdbPath, cmd.ExitCode);
-                return null;
-            }
-
-            return pdbPath;
-        }
-
-        private static string getNugetPackageDir()
-        {
-            string homeDrive = Environment.GetEnvironmentVariable("HOMEDRIVE");
-            if (homeDrive == null)
-            {
-                return null;
-            }
-
-            string homePath = Environment.GetEnvironmentVariable("HOMEPATH");
-            if (homePath == null)
-            {
-                return null;
-            }
-
-            var nugetPackageDir = homeDrive + homePath + @"\.nuget\packages";
-            if (!Directory.Exists(nugetPackageDir))
-            {
-                return null;
-            }
-
-            return nugetPackageDir;
-        }
-
-        private string GetCrossGenExePath(string ngenImageFullPath)
-        {
-            var imageDir = Path.GetDirectoryName(ngenImageFullPath);
-            string crossGen = Path.Combine(imageDir, "crossGen.exe");
-
-            m_log.WriteLine("Checking for CoreCLR case, looking for CrossGen at {0}", crossGen);
-            if (File.Exists(crossGen))
-            {
-                return crossGen;
-            }
-
-            string coreclr = Path.Combine(imageDir, "coreclr.dll");
-            if (File.Exists(coreclr))
-            {
-                DateTime coreClrTimeStamp = File.GetLastWriteTimeUtc(coreclr);
-                m_log.WriteLine("Found coreclr: at  {0}, timestamp {1}", coreclr, coreClrTimeStamp);
-                string nugetDir = getNugetPackageDir();
-                if (nugetDir != null)
-                {
-                    m_log.WriteLine("Found nuget package dir: at  {0}", nugetDir);
-                    foreach (var runtimeDir in Directory.GetDirectories(nugetDir, "runtime.win*.microsoft.netcore.runtime.coreclr"))
-                    {
-                        foreach (var runtimeVersionDir in Directory.GetDirectories(runtimeDir))
-                        {
-                            foreach (var osarchDir in Directory.GetDirectories(Path.Combine(runtimeVersionDir, "runtimes"), "win*"))
-                            {
-                                string packageCoreCLR = Path.Combine(osarchDir, @"native\coreclr.dll");
-                                DateTime packageCoreClrTimeStamp = File.GetLastWriteTimeUtc(packageCoreCLR);
-                                m_log.WriteLine("Checking timestamp of file {0} = {1}", packageCoreCLR, packageCoreClrTimeStamp);
-                                if (File.Exists(packageCoreCLR) && packageCoreClrTimeStamp == coreClrTimeStamp)
-                                {
-                                    crossGen = Path.Combine(runtimeVersionDir, @"tools\crossgen.exe");
-                                    m_log.WriteLine("Found matching CoreCLR, probing for crossgen at {0}", crossGen);
-                                    if (File.Exists(crossGen))
-                                    {
-                                        return crossGen;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Check if you are running the runtime out of the nuget directory itself 
-            var m = Regex.Match(imageDir, @"^(.*)\\runtimes\\win.*\\native$", RegexOptions.IgnoreCase);
-            if (m.Success)
-            {
-                crossGen = Path.Combine(m.Groups[1].Value, "tools", "crossGen.exe");
-                if (File.Exists(crossGen))
-                {
-                    return crossGen;
-                }
-            }
-
-            m_log.WriteLine("Could not find crossgen, giving up");
-            return null;
-        }
-
         // TODO remove after 12/2015
         private void InsurePathIsInNIC(TextWriter log, ref string ngenImageFullPath)
         {
@@ -1122,21 +964,6 @@ namespace Microsoft.Diagnostics.Symbols
 
             var sw = Stopwatch.StartNew();
 
-            if (m_deadServers != null)
-            {
-                // Try again after 5 minutes.  
-                if ((DateTime.UtcNow - m_lastDeadTimeUtc).TotalSeconds > 300)
-                {
-                    m_deadServers = null;
-                }
-            }
-
-            if (m_deadServers != null && m_deadServers.Contains(serverPath))
-            {
-                m_log.WriteLine("FindSymbolFilePath: Skipping server {0} because it was unreachable in the past, will try again in 5 min.", serverPath);
-                return false;
-            }
-
             bool canceled = false;        // Are we trying to cancel the task
             bool alive = false;           // Has the task ever been shown to be alive (worth giving them time)
             bool successful = false;      // The task was successful
@@ -1220,8 +1047,8 @@ namespace Microsoft.Diagnostics.Symbols
                     }
                 });
 
-                // Wait 60 seconds allowing for interruptions.
-                var limit = 600;
+                // Wait for the timeout period allowing for interruptions.
+                var limit = (int)(ServerTimeout.TotalSeconds * 10); // Convert seconds to deciseconds (0.1 seconds)
 
                 for (int i = 0; i < limit; i++)
                 {
@@ -1255,15 +1082,8 @@ namespace Microsoft.Diagnostics.Symbols
                 else if (!task.IsCompleted)
                 {
                     canceled = true;
-                    m_log.WriteLine("FindSymbolFilePath: Time {0} sec.  Timeout of {1} seconds exceeded for {2}.  Setting as dead server",
-                            sw.Elapsed.TotalSeconds, limit / 10, serverPath);
-                    if (m_deadServers == null)
-                    {
-                        m_deadServers = new List<string>();
-                    }
-
-                    m_deadServers.Add(serverPath);
-                    m_lastDeadTimeUtc = DateTime.UtcNow;
+                    m_log.WriteLine("FindSymbolFilePath: Time {0} sec.  Timeout of {1} seconds exceeded for {2}.",
+                            sw.Elapsed.TotalSeconds, ServerTimeout.TotalSeconds, serverPath);
                 }
             }
             finally
@@ -1699,8 +1519,6 @@ namespace Microsoft.Diagnostics.Symbols
         }
 
         internal TextWriter m_log;
-        private List<string> m_deadServers;     // What servers can't be reached right now
-        private DateTime m_lastDeadTimeUtc;     // The last time something went dead.  
         private string m_SymbolCacheDirectory;
         private string m_SourceCacheDirectory;
         private Cache<string, ManagedSymbolModule> m_symbolModuleCache;
